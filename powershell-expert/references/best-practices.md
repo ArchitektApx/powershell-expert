@@ -1,12 +1,17 @@
 # PowerShell Best Practices Reference
 
+Based on Microsoft guidance and the community PowerShell Practice and Style guide (PoshCode). Formatting/readability rules live in [style-guide.md](style-guide.md).
+
 ## Table of Contents
 1. [Naming Conventions](#naming-conventions)
 2. [Parameter Design](#parameter-design)
 3. [Pipeline Support](#pipeline-support)
-4. [Error Handling](#error-handling)
-5. [Output Patterns](#output-patterns)
-6. [Code Style](#code-style)
+4. [Language Pitfalls](#language-pitfalls)
+5. [Error Handling](#error-handling)
+6. [Output Patterns](#output-patterns)
+7. [Performance](#performance)
+8. [Security](#security)
+9. [Tools vs Controllers](#tools-vs-controllers)
 
 ---
 
@@ -20,14 +25,15 @@
 
 ```powershell
 # Good
-Get-SQLServer
+Get-SQLServerInstance
 New-AzureStorageAccount
 Remove-UserSession
 
 # Bad
 Get-Server           # Too generic
 Get-Servers          # Plural noun
-get-sqlserver        # Wrong case
+get-sqlserverinstance  # Wrong case
+Get-SQLServerInstance  # Acronyms >2 letters: PascalCase (Sql), not all caps
 ```
 
 ### Parameter Names
@@ -40,7 +46,8 @@ param(
     [Parameter(Mandatory)]
     [string]$Name,
 
-    [Alias('ComputerName', 'CN')]
+    # Standard name users know from native cmdlets; aliases for interop
+    [Alias('CN', 'ComputerName')]
     [string]$Server,
 
     [string[]]$Tags  # Plural - accepts array
@@ -51,6 +58,12 @@ param(
 - **$PascalCase** for script/global scope
 - **$camelCase** acceptable for local scope
 - **Descriptive names** over abbreviations
+
+### Paths
+- Full, explicit paths; relative paths (`.`, `..`) only right after you `Set-Location` yourself
+- Base script-relative paths on `$PSScriptRoot`
+- **.NET methods and native tools don't use `$PWD`** — they use `[Environment]::CurrentDirectory`. Always pass absolute paths: `[IO.File]::ReadAllText((Convert-Path $Path))`
+- Avoid `~` — its meaning depends on the current provider; use `$HOME`
 
 ---
 
@@ -82,8 +95,8 @@ param(
     [Parameter(ParameterSetName = 'ByName', Position = 0)]
     [string]$Name,
 
-    [Parameter(ParameterSetName = 'ByID')]
-    [int]$ID,
+    [Parameter(ParameterSetName = 'ById')]
+    [int]$Id,
 
     [Parameter(ParameterSetName = 'ByObject', ValueFromPipeline)]
     [PSObject]$InputObject
@@ -95,9 +108,8 @@ param(
 |-----------|----------|
 | `-Force` | Override warnings/protections |
 | `-PassThru` | Return modified objects |
-| `-WhatIf` | Preview changes without executing |
-| `-Confirm` | Prompt before executing |
-| `-Verbose` | Detailed operational info |
+| `-WhatIf`/`-Confirm` | Free via `SupportsShouldProcess` — never declare manually |
+| `-Verbose`/`-Debug` | Free via `[CmdletBinding()]` — never declare manually |
 
 ### Path Parameters
 ```powershell
@@ -116,6 +128,14 @@ param(
 
 ## Pipeline Support
 
+### Function Structure Rules
+- **Always `[CmdletBinding()]`** on scripts and functions — enables common parameters and output streams
+- Blocks in order: `param()`, `begin {}`, `process {}`, `end {}`
+- **Emit output only from `process {}`** in pipeline functions; `begin`/`end` are for setup/cleanup, not output
+- **Don't use `return` to emit output** in advanced functions — place the object on its own line; `return` only for early exit
+- Declare `[OutputType([TypeName])]` when the function returns objects
+- Include `process {}` whenever a parameter accepts pipeline input
+
 ### Accept Pipeline Input
 ```powershell
 param(
@@ -129,36 +149,56 @@ param(
 
 process {
     foreach ($item in $Name) {
-        # Process each item immediately
-        Write-Output $result
+        Get-ItemDetail -Name $item   # result streams immediately - implicit output
     }
 }
 ```
 
 ### Write Objects Immediately
 ```powershell
-# Good - stream output
+# Good - each object streams down the pipeline immediately
 foreach ($item in $collection) {
-    $result = Process-Item $item
-    Write-Output $result
+    Convert-Item $item
 }
 
-# Bad - buffer then output
+# Bad - array rebuild every iteration (O(n²)), nothing streams
 $results = @()
 foreach ($item in $collection) {
-    $results += Process-Item $item
+    $results += Convert-Item $item
 }
 $results
 ```
 
 ---
 
+## Language Pitfalls
+
+- **`$null` on the left of comparisons**: `if ($null -eq $x)`. With `$x` on the left, comparing a collection *filters* instead of comparing — `@() -eq $null` yields an empty array (falsy), so the check silently passes. PSScriptAnalyzer rule: `PSPossibleIncorrectComparisonWithNull`.
+- **Comparison operators filter collections**: `$array -eq 5` returns the matching *elements*, not a boolean. For membership tests use `-contains`/`-in`; for counting use `.Count`.
+- **Single-element unrolling**: a function emitting one object returns that object, not a one-element array. Wrap the call in `@(...)` whenever `.Count` or indexing must work.
+- **`Set-StrictMode -Version Latest`** during development catches typo'd variables and missing properties; pair with PSScriptAnalyzer in CI.
+- **`[switch]` test**: use `$Force.IsPresent` or just `$Force` — never compare to `$true`.
+- **String truthiness**: `'0'` and `' '` are truthy, `''` and `$null` are falsy — test `[string]::IsNullOrEmpty()` / `IsNullOrWhiteSpace()` explicitly for strings.
+
+---
+
 ## Error Handling
+
+### Core Rules
+- **`-ErrorAction Stop`** on cmdlets inside `try` — non-terminating errors don't trigger `catch` otherwise
+- For non-cmdlets (native commands, .NET calls): set `$ErrorActionPreference = 'Stop'` before, restore after
+- **Put the whole transaction in the `try` block**, not just the first risky line — no flag variables
+- **Copy `$_` to your own variable immediately** in `catch` — subsequent commands overwrite it
+- **Never test `$?` or null results** as an error-detection strategy; rely on exceptions
+- Don't clear `$Error`; PowerShell maintains it, `$Error[0]` is the latest
+- One task per operation (one file, one computer) keeps error handling clean
 
 ### Use Try/Catch with Specific Errors
 ```powershell
 try {
-    $result = Get-Content -Path $Path -ErrorAction Stop
+    $content = Get-Content -Path $Path -ErrorAction Stop
+    $data = $content | ConvertFrom-Json
+    Set-Content -Path $OutPath -Value $data.name -Encoding UTF8 -ErrorAction Stop
 }
 catch [System.IO.FileNotFoundException] {
     Write-Error "File not found: $Path"
@@ -169,8 +209,9 @@ catch [System.UnauthorizedAccessException] {
     return
 }
 catch {
-    Write-Error "Unexpected error: $_"
-    throw
+    $err = $_   # capture before doing anything else
+    Write-Error "Failed processing '$Path': $($err.Exception.Message)"
+    throw $err
 }
 ```
 
@@ -178,7 +219,7 @@ catch {
 ```powershell
 # Terminating - stops execution
 throw "Critical error occurred"
-$PSCmdlet.ThrowTerminatingError($errorRecord)
+$PSCmdlet.ThrowTerminatingError($errorRecord)   # preferred in advanced functions
 
 # Non-terminating - continues execution
 Write-Error "Problem with item: $item"
@@ -204,11 +245,17 @@ Write-Progress -Activity "Processing" -Status "Item $i of $total" -PercentComple
 
 ## Output Patterns
 
+### Use the Right Stream
+- **Output stream**: actual results only — the one stream callers consume. Never mix status strings with data objects.
+- **`Write-Host`**: **only** in `Show-*`/`Format-*` functions or interactive prompts — it cannot be captured or redirected. Everything else uses another stream.
+- **One output type per command**; declare it with `[OutputType()]`. Multiple types only internally or when piping each to `Out-Default` separately.
+- **No `Format-*` inside functions** — formatting destroys objects. Ship a `<Module>.format.ps1xml` referenced in the module manifest; `PSTypeName` binds objects to their view automatically.
+
 ### Return Typed Objects
 ```powershell
 # Create custom objects with type name
 [PSCustomObject]@{
-    PSTypeName = 'MyModule.ServerInfo'
+    PSTypeName = 'MyModule.ServerInfo'   # enables format views + type-based filtering
     Name       = $server.Name
     Status     = $server.Status
     IPAddress  = $server.IP
@@ -217,30 +264,31 @@ Write-Progress -Activity "Processing" -Status "Item $i of $total" -PercentComple
 
 ### PassThru Pattern
 ```powershell
-function Set-ItemProperty {
-    [CmdletBinding()]
+function Set-WidgetProperty {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
-        [string]$Name,
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [PSObject]$InputObject,
         [string]$Value,
         [switch]$PassThru
     )
 
-    # Modify the item
-    $item.Property = $Value
-
-    if ($PassThru) {
-        Write-Output $item
+    process {
+        if ($PSCmdlet.ShouldProcess($InputObject.Name, 'Set property')) {
+            $InputObject.Property = $Value
+            if ($PassThru) { $InputObject }
+        }
     }
 }
 ```
 
 ### ShouldProcess Pattern
 ```powershell
-function Remove-Item {
+function Remove-WidgetCache {
     [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
     param([string]$Path)
 
-    if ($PSCmdlet.ShouldProcess($Path, 'Delete')) {
+    if ($PSCmdlet.ShouldProcess($Path, 'Delete cache')) {
         # Perform deletion
     }
 }
@@ -248,78 +296,55 @@ function Remove-Item {
 
 ---
 
+## Performance
+
+- **Measure before optimizing**: `Measure-Command { ... }` on realistic data, on the target PowerShell version and hardware
+- **Never `+=` an array in a loop** — quadratic rebuild. Collect loop output directly, or use `[System.Collections.Generic.List[object]]` with `.Add()`:
+  ```powershell
+  $results = foreach ($item in $items) { Convert-Item $item }
+  ```
+- **Never `+=` strings in a loop** — use `-join`, here-strings, or `[System.Text.StringBuilder]`
+- `foreach (...)` statement is faster than piping to `ForEach-Object`; but for large files/streams, pipeline streaming (`Get-Content ... | ForEach-Object`) wins on memory over loading everything first
+- **Filter left**: `Get-Process -Name x` beats `Get-Process | Where-Object Name -eq x` — push filters into the cmdlet/provider/query, not the pipeline
+- Speed hierarchy when it matters: language features > .NET method calls > cmdlet invocation; direct code > function-call overhead in hot loops
+- Don't sacrifice readability for negligible gains on small data — aesthetics and performance both count
+
+---
+
+## Security
+
+- **Never accept or store passwords as `[string]`.** Use `[PSCredential]`:
+  ```powershell
+  param(
+      [System.Management.Automation.Credential()]
+      [PSCredential]$Credential = [PSCredential]::Empty
+  )
+  ```
+  The `Credential()` attribute prompts securely if the user passes only a username.
+- Accept credentials as parameters — don't call `Get-Credential` inside tool functions
+- Extract plaintext only at the last moment, for APIs that demand it: `$Credential.GetNetworkCredential().Password`
+- Secure interactive input: `Read-Host -AsSecureString`
+- Persist credentials with `Export-CliXml` (DPAPI-encrypted, locked to user+machine, Windows only); load with `Import-CliXml`. Cross-platform or shared secrets: `Microsoft.PowerShell.SecretManagement`
+- Never `Invoke-Expression` on user input or downloaded content; avoid it generally — the `&` call operator plus splatting covers almost every legitimate use
+- Don't log or `Write-Verbose` secrets
+
+---
+
+## Tools vs Controllers
+
+Two kinds of scripts — don't mix their responsibilities:
+
+- **Tools** (functions in modules): reusable; input via parameters, output raw minimally-processed objects to the pipeline; no formatting, no `Write-Host`, no business assumptions
+- **Controllers** (scripts): automate one specific process by composing tools; may format output for humans, write reports, hardcode business specifics; not built for reuse
+
+Rules:
+- Check for an existing built-in or gallery command before writing your own
+- Code you'll use twice belongs in a function; functions used across projects belong in a module
+- Wrap external/native tools in advanced functions so callers keep objects, pipeline, and error semantics; document why the native tool was necessary
+- Version requirements: `#Requires -Version X.Y` at script top; `PowerShellVersion = 'X.Y'` in module manifests. Target the lowest version you actually support (see [cross-platform.md](cross-platform.md) tiers)
+
+---
+
 ## Code Style
 
-### Avoid Aliases in Scripts
-```powershell
-# Good
-Get-ChildItem | Where-Object { $_.Length -gt 1MB } | ForEach-Object { $_.Name }
-
-# Bad
-gci | ? { $_.Length -gt 1MB } | % { $_.Name }
-```
-
-### Use Explicit Parameter Names
-```powershell
-# Good
-Get-Process -Name 'notepad' -ComputerName 'Server01'
-
-# Bad (positional)
-Get-Process 'notepad' 'Server01'
-```
-
-### Splatting for Readability
-```powershell
-$params = @{
-    Path        = $sourcePath
-    Destination = $destPath
-    Recurse     = $true
-    Force       = $true
-    ErrorAction = 'Stop'
-}
-Copy-Item @params
-```
-
-### Line Continuation
-```powershell
-# Good - natural breaks after operators
-Get-Process |
-    Where-Object { $_.CPU -gt 100 } |
-    Sort-Object CPU -Descending |
-    Select-Object -First 10
-
-# Avoid backticks for continuation
-```
-
-### Comment-Based Help
-```powershell
-function Get-ServerStatus {
-    <#
-    .SYNOPSIS
-        Gets the status of specified servers.
-
-    .DESCRIPTION
-        Retrieves operational status including CPU, memory,
-        and network information from remote servers.
-
-    .PARAMETER Name
-        The server name(s) to query.
-
-    .EXAMPLE
-        Get-ServerStatus -Name 'Server01'
-
-        Gets status for Server01.
-
-    .EXAMPLE
-        'Server01', 'Server02' | Get-ServerStatus
-
-        Gets status for multiple servers via pipeline.
-    #>
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [string[]]$Name
-    )
-    # Implementation
-}
-```
+Formatting, capitalization, aliases, splatting, comments, and comment-based help: see [style-guide.md](style-guide.md).

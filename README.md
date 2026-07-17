@@ -1,8 +1,8 @@
 # PowerShell Expert Skill
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-1.1.0-green.svg)](CHANGELOG.md)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20|%20PowerShell%207+-blue.svg)](https://github.com/PowerShell/PowerShell)
+[![Version](https://img.shields.io/badge/Version-1.2.0-green.svg)](CHANGELOG.md)
+[![Platform](https://img.shields.io/badge/PowerShell-5.1%20|%207+%20(Windows%20|%20Linux%20|%20macOS)-blue.svg)](https://github.com/PowerShell/PowerShell)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Skill-blueviolet.svg)](https://claude.ai/code)
 
 A Claude Code skill for developing PowerShell scripts, tools, modules, and GUIs following Microsoft best practices.
@@ -10,7 +10,10 @@ A Claude Code skill for developing PowerShell scripts, tools, modules, and GUIs 
 ## Features
 
 - **Script Development** - Templates, naming conventions, parameter design, pipeline patterns
-- **GUI Development** - Windows Forms and WPF/XAML patterns with 15+ control examples
+- **Best Practices & Style** - Error handling, output, performance, security, plus the community (PoshCode) formatting standard
+- **Cross-Platform Compatibility** - Tiered targeting: PowerShell 7 on all platforms by default, Windows PowerShell 5.1 support when feasible; path handling, encoding, platform detection
+- **Testing** - Pester 5 patterns, mocking, and a ready-made PSScriptAnalyzer compatibility settings file
+- **GUI Development** - Windows Forms and WPF/XAML patterns with 15+ control examples (Windows only)
 - **PowerShell Gallery Integration** - Search, install, and manage modules via PSResourceGet
 - **Module Recommendations** - Curated list of popular modules by category
 - **Live Verification** - Validates module availability and cmdlet syntax against live documentation
@@ -45,6 +48,8 @@ The skill activates automatically when you ask Claude Code to:
 "Create a GUI for selecting and renaming files"
 "What module should I use for working with Excel files?"
 "Help me add proper error handling to this script"
+"Make this script work on both Windows PowerShell 5.1 and PowerShell 7 on Linux"
+"Write Pester tests for this function"
 ```
 
 ### Live Verification
@@ -64,14 +69,33 @@ Module recommendations are always verified before being presented. If live verif
 
 ```
 powershell-expert/
-├── SKILL.md                 # Core workflow and quick reference
+├── SKILL.md                          # Core workflow and quick reference
 ├── scripts/
-│   └── Search-Gallery.ps1   # Enhanced PowerShell Gallery search
+│   ├── Search-Gallery.ps1            # Enhanced PowerShell Gallery search
+│   └── PSScriptAnalyzer.Tier1.psd1   # Compat lint settings (5.1 + 7)
 └── references/
-    ├── best-practices.md    # Naming, parameters, pipeline, errors
+    ├── best-practices.md    # Naming, parameters, pipeline, errors,
+    │                        #   output, performance, security
+    ├── style-guide.md       # Formatting, capitalization, readability,
+    │                        #   comments (PoshCode community standard)
+    ├── cross-platform.md    # 5.1 + 7 compatibility tiers, paths,
+    │                        #   encoding, platform detection
+    ├── testing.md           # Pester 5, mocking, static analysis
     ├── gui-development.md   # Forms, WPF, controls, events
     └── powershellget.md     # Module management cmdlets
 ```
+
+## Cross-Platform Targeting
+
+Scripts default to the highest compatibility tier that fits the project:
+
+| Tier | Target | When |
+|------|--------|------|
+| **1** (default) | Windows PowerShell 5.1 + PowerShell 7, all platforms | No constraint against 5.1 |
+| **2** | PowerShell 7+, all platforms | Project targets PS 7, or a required module/feature is Core-only |
+| Windows-only | 5.1 and/or 7 on Windows | WinForms/WPF, Registry, Windows-only modules |
+
+Dropping 5.1 never means dropping Linux/macOS — cross-platform path, encoding, and cmdlet-availability rules apply in every tier.
 
 ## Documentation Sources
 
@@ -80,6 +104,7 @@ powershell-expert/
 - [Module Browser](https://learn.microsoft.com/en-us/powershell/module/)
 - [PowerShell-Docs (raw)](https://raw.githubusercontent.com/MicrosoftDocs/PowerShell-Docs/live/reference/)
 - [PSResourceGet Docs (raw)](https://raw.githubusercontent.com/MicrosoftDocs/powershell-docs-psget/live/powershell-gallery/powershellget-3.x/Microsoft.PowerShell.PSResourceGet/)
+- [PowerShell Practice and Style (PoshCode)](https://github.com/PoshCode/PowerShellPracticeAndStyle)
 
 ## License
 

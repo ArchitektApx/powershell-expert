@@ -1,6 +1,6 @@
 ---
 name: powershell-expert
-description: Develop PowerShell scripts, tools, modules, and GUIs following Microsoft best practices. Use when writing PowerShell code, creating Windows Forms/WPF interfaces, working with PowerShell Gallery modules, or needing cmdlet/module recommendations. Covers script development, parameter design, pipeline handling, error management, and GUI creation patterns. Verifies module availability and cmdlet syntax against live documentation when accuracy is critical.
+description: Develop PowerShell scripts, tools, modules, and GUIs following Microsoft best practices. Use when writing PowerShell code, creating Windows Forms/WPF interfaces, working with PowerShell Gallery modules, or needing cmdlet/module recommendations. Covers script development, parameter design, pipeline handling, error management, GUI creation patterns, Pester testing, and cross-platform compatibility (Windows PowerShell 5.1 and PowerShell 7 on Windows/Linux/macOS). Verifies module availability and cmdlet syntax against live documentation when accuracy is critical.
 ---
 
 # PowerShell Expert
@@ -58,7 +58,7 @@ function Verb-Noun {
 
         [Parameter(ValueFromPipelineByPropertyName)]
         [Alias('CN')]
-        [string]$ComputerName = $env:COMPUTERNAME,
+        [string]$ComputerName = [Environment]::MachineName,
 
         [switch]$PassThru
     )
@@ -66,7 +66,7 @@ function Verb-Noun {
     process {
         if ($PSCmdlet.ShouldProcess($Name, 'Action')) {
             # Implementation
-            if ($PassThru) { Write-Output $result }
+            if ($PassThru) { $result }   # implicit output - no Write-Output, no return
         }
     }
 }
@@ -81,9 +81,22 @@ Follow naming and parameter conventions:
 - **Pipeline support** via `ValueFromPipeline`
 - **-WhatIf/-Confirm** for destructive operations
 
-See [best-practices.md](references/best-practices.md) for complete guidelines.
+Non-negotiables (community standard):
+- Full cmdlet + parameter names in saved code — no aliases, no positional args
+- No backtick line continuation — splat instead; OTBS braces, 4-space indent
+- No `Write-Host` except `Show-*`/`Format-*` or interactive prompts; emit objects, not text
+- No `return` for output in advanced functions — emit from `process {}`; one output type, declare `[OutputType()]`
+- `-ErrorAction Stop` inside `try`; copy `$_` first in `catch`; never test `$?`
+- Never `+=` arrays/strings in loops — collect loop output or use `List[T]`/`-join`
+- Credentials as `[PSCredential]`, never plaintext `[string]`; no `Invoke-Expression`
+
+See [best-practices.md](references/best-practices.md) for behavior rules, [style-guide.md](references/style-guide.md) for formatting.
+
+Test non-trivial code with Pester 5 — see [testing.md](references/testing.md) for setup, mocking, and CI patterns.
 
 ### 2. GUI Development
+**Windows-only** — WinForms/WPF work in 5.1 and PS 7 on Windows, but not on Linux/macOS. For cross-platform interactivity use console UX (`Read-Host`, `$Host.UI.PromptForChoice`, `Out-GridView` alternatives) or a web UI (e.g., Pode).
+
 Windows Forms for simple dialogs, WPF/XAML for complex interfaces:
 
 ```powershell
@@ -99,7 +112,32 @@ $form = New-Object System.Windows.Forms.Form -Property @{
 
 See [gui-development.md](references/gui-development.md) for controls, events, and templates.
 
-### 3. PowerShell Gallery Integration
+### 3. Cross-Platform Scripts
+
+**Default target: PowerShell 7 on all platforms (Windows/Linux/macOS). Add Windows PowerShell 5.1 support when feasible — drop it only with a concrete reason.**
+
+Choose the compatibility tier before writing code:
+
+| Situation | Tier | `#Requires` |
+|-----------|------|-------------|
+| No constraint against 5.1 (default) | **Tier 1: 5.1 + 7, all platforms** | `-Version 5.1` |
+| Project explicitly targets PS 7, or a required module/API is Core-only, or PS7-only features (ternary, `-Parallel`, `clean{}`) bring real value | **Tier 2: PS 7+, all platforms** | `-Version 7.0` |
+| Windows-only tech required (WinForms/WPF, Registry, Windows modules) | Windows-only — still prefer PS 7 syntax unless 5.1 needed | `-Version 5.1` or `7.0` |
+
+When choosing Tier 2, state the reason (e.g., "module X requires PS 7"). If unclear whether 5.1 support matters, ask the user.
+
+**Cross-platform rules apply in every tier** (Tier 2 still runs on Linux/macOS):
+- **Paths via `Join-Path`** / `$HOME` / `[IO.Path]`; never hardcode `\` or `C:\`; mind Linux case-sensitivity
+- **Explicit `-Encoding`** on all file writes
+- **`Get-CimInstance`** not `Get-WmiObject`; guard Windows-only cmdlets with `$IsWindows`
+
+**Tier 1 additionally** requires:
+- No PS7-only syntax: ternary, `??`, `?.`, `&&`, `ForEach-Object -Parallel`
+- Guard `$IsWindows` — undefined in 5.1: `$PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows`
+
+See [cross-platform.md](references/cross-platform.md) for full syntax table, encoding matrix, cmdlet availability, and PSScriptAnalyzer compat-rule setup.
+
+### 4. PowerShell Gallery Integration
 Search and install modules using PSResourceGet:
 
 ```powershell
@@ -143,9 +181,9 @@ Copy-Item @params
 
 ### Pipeline Best Practices
 ```powershell
-# Stream output immediately
+# Stream output immediately - implicit output, no buffering, no += arrays
 foreach ($item in $collection) {
-    Process-Item $item | Write-Output
+    Convert-Item $item
 }
 
 # Accept pipeline input
@@ -254,6 +292,9 @@ If the WebFetch or WebSearch tools are unavailable or return errors:
 
 ## References
 
-- **[best-practices.md](references/best-practices.md)** - Naming, parameters, pipeline, error handling, code style
+- **[best-practices.md](references/best-practices.md)** - Naming, parameters, pipeline, error handling, output, performance, security
+- **[style-guide.md](references/style-guide.md)** - Formatting, capitalization, readability, comments, comment-based help
+- **[cross-platform.md](references/cross-platform.md)** - PS 5.1 + 7 compatibility, path handling, encoding, platform detection
+- **[testing.md](references/testing.md)** - Pester 5, mocking, TestDrive, PSScriptAnalyzer, CI matrix
 - **[gui-development.md](references/gui-development.md)** - Windows Forms, WPF, controls, events, templates
 - **[powershellget.md](references/powershellget.md)** - Find, install, update, publish modules

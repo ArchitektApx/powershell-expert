@@ -202,10 +202,11 @@ Uninstall-PSResource -Name 'Module' -SkipDependencyCheck
 ### Save Modules (Download without install)
 ```powershell
 # Save to path for offline use
-Save-PSResource -Name 'Az.Compute' -Path 'C:\OfflineModules'
+$offlinePath = Join-Path $HOME 'OfflineModules'
+Save-PSResource -Name 'Az.Compute' -Path $offlinePath
 
-# Include dependencies
-Save-PSResource -Name 'Az' -Path 'C:\OfflineModules' -IncludeXml
+# Also write the metadata XML PowerShellGet uses to track installs
+Save-PSResource -Name 'Az' -Path $offlinePath -IncludeXml
 ```
 
 ---
@@ -232,7 +233,8 @@ Save-PSResource -Name 'Az' -Path 'C:\OfflineModules' -IncludeXml
 ### Publish
 ```powershell
 # Get API key from https://www.powershellgallery.com/account/apikeys
-$apiKey = 'your-api-key'
+# Store it in a secret vault, never in the script:
+$apiKey = Get-Secret -Name PSGalleryApiKey -AsPlainText   # Microsoft.PowerShell.SecretManagement
 
 # Publish module
 Publish-PSResource -Path './MyModule' -ApiKey $apiKey -Repository PSGallery
@@ -247,19 +249,26 @@ Publish-PSResource -Path './MyModule' -ApiKey $apiKey -WhatIf
 
 ### Install if Missing
 ```powershell
-function Ensure-Module {
-    param([string]$Name, [string]$MinVersion)
+function Install-RequiredModule {   # approved verb; 'Ensure-' is not (see Get-Verb)
+    param(
+        [Parameter(Mandatory)]
+        [string]$Name,
 
-    $installed = Get-InstalledPSResource -Name $Name -ErrorAction SilentlyContinue
+        [version]$MinVersion
+    )
+
+    $installed = Get-InstalledPSResource -Name $Name -ErrorAction SilentlyContinue |
+        Sort-Object -Property Version -Descending |
+        Select-Object -First 1
 
     if (-not $installed -or ($MinVersion -and $installed.Version -lt $MinVersion)) {
         Install-PSResource -Name $Name -Scope CurrentUser -TrustRepository
     }
 
-    Import-Module $Name
+    Import-Module -Name $Name
 }
 
-Ensure-Module -Name 'Az.Compute' -MinVersion '5.0.0'
+Install-RequiredModule -Name 'Az.Compute' -MinVersion '5.0.0'
 ```
 
 ### Bulk Install from List

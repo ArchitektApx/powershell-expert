@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Claude Code skill for PowerShell development. The skill provides templates, best practices, and reference documentation for writing PowerShell scripts, tools, modules, and GUIs.
+This is a Claude Code skill for PowerShell development. The skill provides templates, best practices, and reference documentation for writing PowerShell scripts, tools, and modules.
 
 ## Build Commands
 
@@ -26,7 +26,6 @@ This is a Claude Code skill following the standard skill structure:
   - `style-guide.md` - Formatting, capitalization, readability, comments (PoshCode community standard)
   - `cross-platform.md` - PS 5.1 + 7 compatibility tiers, paths, encoding, platform detection
   - `testing.md` - Pester 5 patterns, mocking, PSScriptAnalyzer, CI matrix
-  - `gui-development.md` - Windows Forms and WPF patterns, control examples, event handling
   - `powershellget.md` - PowerShell Gallery cmdlets (PSResourceGet)
 - `powershell-expert/scripts/` - Helper scripts and assets:
   - `Search-Gallery.ps1` - Enhanced wrapper for Find-PSResource

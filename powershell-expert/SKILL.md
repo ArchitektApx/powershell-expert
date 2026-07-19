@@ -1,11 +1,11 @@
 ---
 name: powershell-expert
-description: Develop PowerShell scripts, tools, modules, and GUIs following Microsoft best practices. Use when writing PowerShell code, creating Windows Forms/WPF interfaces, working with PowerShell Gallery modules, or needing cmdlet/module recommendations. Covers script development, parameter design, pipeline handling, error management, GUI creation patterns, Pester testing, and cross-platform compatibility (Windows PowerShell 5.1 and PowerShell 7 on Windows/Linux/macOS). Verifies module availability and cmdlet syntax against live documentation when accuracy is critical.
+description: Develop PowerShell scripts, tools, and modules following Microsoft best practices. Use when writing PowerShell code, working with PowerShell Gallery modules, or needing cmdlet/module recommendations. Covers script development, parameter design, pipeline handling, error management, Pester testing, and cross-platform compatibility (Windows PowerShell 5.1 and PowerShell 7 on Windows/Linux/macOS). Verifies module availability and cmdlet syntax against live documentation when accuracy is critical.
 ---
 
 # PowerShell Expert
 
-Develop production-quality PowerShell scripts, tools, and GUIs using Microsoft best practices and the PowerShell ecosystem.
+Develop production-quality PowerShell scripts, tools, and modules using Microsoft best practices and the PowerShell ecosystem.
 
 ## Quick Reference
 
@@ -94,25 +94,7 @@ See [best-practices.md](references/best-practices.md) for behavior rules, [style
 
 Test non-trivial code with Pester 5 — see [testing.md](references/testing.md) for setup, mocking, and CI patterns.
 
-### 2. GUI Development
-**Windows-only** — WinForms/WPF work in 5.1 and PS 7 on Windows, but not on Linux/macOS. For cross-platform interactivity use console UX (`Read-Host`, `$Host.UI.PromptForChoice`, `Out-GridView` alternatives) or a web UI (e.g., Pode).
-
-Windows Forms for simple dialogs, WPF/XAML for complex interfaces:
-
-```powershell
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-
-$form = New-Object System.Windows.Forms.Form -Property @{
-    Text          = 'Title'
-    Size          = New-Object System.Drawing.Size(400, 300)
-    StartPosition = 'CenterScreen'
-}
-```
-
-See [gui-development.md](references/gui-development.md) for controls, events, and templates.
-
-### 3. Cross-Platform Scripts
+### 2. Cross-Platform Scripts
 
 **Default target: PowerShell 7 on all platforms (Windows/Linux/macOS). Add Windows PowerShell 5.1 support when feasible — drop it only with a concrete reason.**
 
@@ -137,7 +119,7 @@ When choosing Tier 2, state the reason (e.g., "module X requires PS 7"). If uncl
 
 See [cross-platform.md](references/cross-platform.md) for full syntax table, encoding matrix, cmdlet availability, and PSScriptAnalyzer compat-rule setup.
 
-### 4. PowerShell Gallery Integration
+### 3. PowerShell Gallery Integration
 Search and install modules using PSResourceGet:
 
 ```powershell
@@ -209,7 +191,6 @@ When recommending modules, search the PowerShell Gallery. These are common start
 | **Console** | `PSReadLine`, `Terminal-Icons` |
 | **Secrets** | `Microsoft.PowerShell.SecretManagement` |
 | **Web** | `Pode` (web server), `PoshRSJob` (async) |
-| **GUI** | `WPFBot3000`, `PSGUI` |
 
 ## Live Verification
 
@@ -296,5 +277,4 @@ If the WebFetch or WebSearch tools are unavailable or return errors:
 - **[style-guide.md](references/style-guide.md)** - Formatting, capitalization, readability, comments, comment-based help
 - **[cross-platform.md](references/cross-platform.md)** - PS 5.1 + 7 compatibility, path handling, encoding, platform detection
 - **[testing.md](references/testing.md)** - Pester 5, mocking, TestDrive, PSScriptAnalyzer, CI matrix
-- **[gui-development.md](references/gui-development.md)** - Windows Forms, WPF, controls, events, templates
 - **[powershellget.md](references/powershellget.md)** - Find, install, update, publish modules

@@ -202,11 +202,11 @@ Uninstall-PSResource -Name 'Module' -SkipDependencyCheck
 ### Save Modules (Download without install)
 ```powershell
 # Save to path for offline use
-$offlinePath = Join-Path $HOME 'OfflineModules'
-Save-PSResource -Name 'Az.Compute' -Path $offlinePath
+$OfflinePath = Join-Path $HOME 'OfflineModules'
+Save-PSResource -Name 'Az.Compute' -Path $OfflinePath
 
 # Also write the metadata XML PowerShellGet uses to track installs
-Save-PSResource -Name 'Az' -Path $offlinePath -IncludeXml
+Save-PSResource -Name 'Az' -Path $OfflinePath -IncludeXml
 ```
 
 ---
@@ -234,13 +234,13 @@ Save-PSResource -Name 'Az' -Path $offlinePath -IncludeXml
 ```powershell
 # Get API key from https://www.powershellgallery.com/account/apikeys
 # Store it in a secret vault, never in the script:
-$apiKey = Get-Secret -Name PSGalleryApiKey -AsPlainText   # Microsoft.PowerShell.SecretManagement
+$ApiKey = Get-Secret -Name PSGalleryApiKey -AsPlainText   # Microsoft.PowerShell.SecretManagement
 
 # Publish module
-Publish-PSResource -Path './MyModule' -ApiKey $apiKey -Repository PSGallery
+Publish-PSResource -Path './MyModule' -ApiKey $ApiKey -Repository PSGallery
 
 # Dry run (validate without publishing)
-Publish-PSResource -Path './MyModule' -ApiKey $apiKey -WhatIf
+Publish-PSResource -Path './MyModule' -ApiKey $ApiKey -WhatIf
 ```
 
 ---
@@ -257,11 +257,11 @@ function Install-RequiredModule {   # approved verb; 'Ensure-' is not (see Get-V
         [version]$MinVersion
     )
 
-    $installed = Get-InstalledPSResource -Name $Name -ErrorAction SilentlyContinue |
+    $Installed = Get-InstalledPSResource -Name $Name -ErrorAction SilentlyContinue |
         Sort-Object -Property Version -Descending |
         Select-Object -First 1
 
-    if (-not $installed -or ($MinVersion -and $installed.Version -lt $MinVersion)) {
+    if (-not $Installed -or ($MinVersion -and $Installed.Version -lt $MinVersion)) {
         Install-PSResource -Name $Name -Scope CurrentUser -TrustRepository
     }
 
@@ -273,19 +273,19 @@ Install-RequiredModule -Name 'Az.Compute' -MinVersion '5.0.0'
 
 ### Bulk Install from List
 ```powershell
-$modules = @(
+$Modules = @(
     @{ Name = 'Pester'; Version = '5.0.0' }
     @{ Name = 'PSReadLine' }
     @{ Name = 'Az.Accounts' }
 )
 
-foreach ($mod in $modules) {
-    $params = @{
-        Name            = $mod.Name
+foreach ($Mod in $Modules) {
+    $Params = @{
+        Name            = $Mod.Name
         Scope           = 'CurrentUser'
         TrustRepository = $true
     }
-    if ($mod.Version) { $params.Version = $mod.Version }
+    if ($Mod.Version) { $Params.Version = $Mod.Version }
 
     Install-PSResource @params
 }

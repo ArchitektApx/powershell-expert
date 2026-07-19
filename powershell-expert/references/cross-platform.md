@@ -42,9 +42,9 @@ Avoid these PS 7-only features in shared code:
 
 | PS 7 feature | 5.1-compatible replacement |
 |---|---|
-| Ternary `$x ? 'a' : 'b'` | `if ($x) { 'a' } else { 'b' }` |
-| Null-coalescing `$a ?? $b` | `if ($null -ne $a) { $a } else { $b }` |
-| Null-conditional `${a}?.Foo` | `if ($null -ne $a) { $a.Foo }` |
+| Ternary `$X ? 'a' : 'b'` | `if ($X) { 'a' } else { 'b' }` |
+| Null-coalescing `$A ?? $B` | `if ($null -ne $A) { $A } else { $B }` |
+| Null-conditional `${A}?.Foo` | `if ($null -ne $A) { $A.Foo }` |
 | Pipeline chains `cmd1 && cmd2` | `cmd1; if ($?) { cmd2 }` |
 | `ForEach-Object -Parallel` | `Start-Job` / runspace pools / sequential |
 | `clean {}` block (7.3+) | `finally` / `end` block |
@@ -59,7 +59,7 @@ Avoid these PS 7-only features in shared code:
 
 ```powershell
 # ALWAYS build paths with Join-Path — never hardcode \ or /
-$config = Join-Path $HOME '.myapp/config.json'   # forward slash inside literals is OK on Windows too
+$Config = Join-Path $HOME '.myapp/config.json'   # forward slash inside literals is OK on Windows too
 
 # Separators when you need them
 [IO.Path]::DirectorySeparatorChar   # \ on Windows, / elsewhere
@@ -81,9 +81,9 @@ $HOME                                # home dir, all platforms, both editions
 $PSScriptRoot                        # script's own directory
 # Per-user app data:
 if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows) {
-    $appData = $env:APPDATA
+    $AppData = $env:APPDATA
 } else {
-    $appData = Join-Path $HOME '.config'   # XDG convention
+    $AppData = Join-Path $HOME '.config'   # XDG convention
 }
 ```
 
@@ -104,13 +104,13 @@ Fix: **always pass `-Encoding` explicitly** on file-writing cmdlets.
 ```powershell
 # 'utf8' means WITH BOM in 5.1, WITHOUT BOM in 7. 'utf8NoBOM' doesn't exist in 5.1.
 # Interop-safe choice accepted by both: utf8 (accept the BOM difference), or:
-Set-Content -Path $f -Value $text -Encoding UTF8    # works both; BOM in 5.1 only
+Set-Content -Path $F -Value $Text -Encoding UTF8    # works both; BOM in 5.1 only
 ```
 
 If BOM-less UTF-8 is required from 5.1, drop to .NET:
 
 ```powershell
-[IO.File]::WriteAllText($path, $text, [Text.UTF8Encoding]::new($false))
+[IO.File]::WriteAllText($Path, $Text, [Text.UTF8Encoding]::new($false))
 ```
 
 **Script files themselves**: save `.ps1` with non-ASCII characters as **UTF-8 with BOM** — 5.1 misreads BOM-less UTF-8 as ANSI; PS 7 handles both.
@@ -142,9 +142,9 @@ Guard platform-specific blocks:
 
 ```powershell
 if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows) {
-    $os = Get-CimInstance Win32_OperatingSystem
+    $OS = Get-CimInstance Win32_OperatingSystem
 } else {
-    $os = uname -a
+    $OS = uname -a
 }
 ```
 
@@ -164,8 +164,8 @@ if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows) {
 Culture: parse/format numbers and dates invariantly to avoid locale breakage:
 
 ```powershell
-[double]::Parse($s, [Globalization.CultureInfo]::InvariantCulture)
-$date.ToString('yyyy-MM-dd')   # not ToShortDateString()
+[double]::Parse($S, [Globalization.CultureInfo]::InvariantCulture)
+$Date.ToString('yyyy-MM-dd')   # not ToShortDateString()
 ```
 
 ## Running on Linux/macOS

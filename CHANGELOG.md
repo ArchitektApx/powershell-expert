@@ -2,6 +2,16 @@
 
 All notable changes to the powershell-expert skill are documented in this file.
 
+## [1.2.1] - 2026-07-19
+
+### Changed
+- Variable naming: PascalCase for all variables including local scope; camelCase only with a specific reason (was "camelCase acceptable for local scope")
+- All variables in doc examples renamed to PascalCase across SKILL.md and references (`$Item`, `$Params`, `$ApiKey`, `$OS`, …); automatic variables and `$script:` scope untouched
+- `style-guide.md`: parameter documentation via `.PARAMETER` sections in comment-based help; dropped the in-`param`-block comment recommendation
+
+### Removed
+- GUI development reference (`gui-development.md`) and all GUI content: SKILL.md description/workflow section, module recommendations (`WPFBot3000`, `PSGUI`), README mentions
+
 ## [1.2.0] - 2026-07-18
 
 ### Added

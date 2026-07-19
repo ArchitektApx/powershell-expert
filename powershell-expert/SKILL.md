@@ -38,7 +38,7 @@ begin {
 }
 
 process {
-    foreach ($item in $Name) {
+    foreach ($Item in $Name) {
         # Per-item processing
     }
 }
@@ -66,7 +66,7 @@ function Verb-Noun {
     process {
         if ($PSCmdlet.ShouldProcess($Name, 'Action')) {
             # Implementation
-            if ($PassThru) { $result }   # implicit output - no Write-Output, no return
+            if ($PassThru) { $Result }   # implicit output - no Write-Output, no return
         }
     }
 }
@@ -139,7 +139,7 @@ See [powershellget.md](references/powershellget.md) for full cmdlet reference.
 ### Error Handling
 ```powershell
 try {
-    $result = Get-Content -Path $Path -ErrorAction Stop
+    $Result = Get-Content -Path $Path -ErrorAction Stop
 }
 catch [System.IO.FileNotFoundException] {
     Write-Error "File not found: $Path"
@@ -152,7 +152,7 @@ catch {
 
 ### Splatting for Readability
 ```powershell
-$params = @{
+$Params = @{
     Path        = $sourcePath
     Destination = $destPath
     Recurse     = $true
@@ -164,8 +164,8 @@ Copy-Item @params
 ### Pipeline Best Practices
 ```powershell
 # Stream output immediately - implicit output, no buffering, no += arrays
-foreach ($item in $collection) {
-    Convert-Item $item
+foreach ($Item in $Collection) {
+    Convert-Item $Item
 }
 
 # Accept pipeline input
@@ -174,7 +174,7 @@ param(
     [string[]]$InputObject
 )
 process {
-    foreach ($obj in $InputObject) {
+    foreach ($Obj in $InputObject) {
         # Process each
     }
 }

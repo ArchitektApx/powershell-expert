@@ -55,8 +55,7 @@ param(
 ```
 
 ### Variable Names
-- **$PascalCase** for script/global scope
-- **$camelCase** acceptable for local scope
+- **$PascalCase** for all variables, including local scope; camelCase only with a specific reason
 - **Descriptive names** over abbreviations
 
 ### Paths
@@ -148,8 +147,8 @@ param(
 )
 
 process {
-    foreach ($item in $Name) {
-        Get-ItemDetail -Name $item   # result streams immediately - implicit output
+    foreach ($Item in $Name) {
+        Get-ItemDetail -Name $Item   # result streams immediately - implicit output
     }
 }
 ```
@@ -157,24 +156,24 @@ process {
 ### Write Objects Immediately
 ```powershell
 # Good - each object streams down the pipeline immediately
-foreach ($item in $collection) {
-    Convert-Item $item
+foreach ($Item in $Collection) {
+    Convert-Item $Item
 }
 
 # Bad - array rebuild every iteration (O(n²)), nothing streams
-$results = @()
-foreach ($item in $collection) {
-    $results += Convert-Item $item
+$Results = @()
+foreach ($Item in $Collection) {
+    $Results += Convert-Item $Item
 }
-$results
+$Results
 ```
 
 ---
 
 ## Language Pitfalls
 
-- **`$null` on the left of comparisons**: `if ($null -eq $x)`. With `$x` on the left, comparing a collection *filters* instead of comparing — `@() -eq $null` yields an empty array (falsy), so the check silently passes. PSScriptAnalyzer rule: `PSPossibleIncorrectComparisonWithNull`.
-- **Comparison operators filter collections**: `$array -eq 5` returns the matching *elements*, not a boolean. For membership tests use `-contains`/`-in`; for counting use `.Count`.
+- **`$null` on the left of comparisons**: `if ($null -eq $X)`. With `$X` on the left, comparing a collection *filters* instead of comparing — `@() -eq $null` yields an empty array (falsy), so the check silently passes. PSScriptAnalyzer rule: `PSPossibleIncorrectComparisonWithNull`.
+- **Comparison operators filter collections**: `$Array -eq 5` returns the matching *elements*, not a boolean. For membership tests use `-contains`/`-in`; for counting use `.Count`.
 - **Single-element unrolling**: a function emitting one object returns that object, not a one-element array. Wrap the call in `@(...)` whenever `.Count` or indexing must work.
 - **`Set-StrictMode -Version Latest`** during development catches typo'd variables and missing properties; pair with PSScriptAnalyzer in CI.
 - **`[switch]` test**: use `$Force.IsPresent` or just `$Force` — never compare to `$true`.
@@ -196,9 +195,9 @@ $results
 ### Use Try/Catch with Specific Errors
 ```powershell
 try {
-    $content = Get-Content -Path $Path -ErrorAction Stop
-    $data = $content | ConvertFrom-Json
-    Set-Content -Path $OutPath -Value $data.name -Encoding UTF8 -ErrorAction Stop
+    $Content = Get-Content -Path $Path -ErrorAction Stop
+    $Data = $Content | ConvertFrom-Json
+    Set-Content -Path $OutPath -Value $Data.name -Encoding UTF8 -ErrorAction Stop
 }
 catch [System.IO.FileNotFoundException] {
     Write-Error "File not found: $Path"
@@ -209,9 +208,9 @@ catch [System.UnauthorizedAccessException] {
     return
 }
 catch {
-    $err = $_   # capture before doing anything else
-    Write-Error "Failed processing '$Path': $($err.Exception.Message)"
-    throw $err
+    $Err = $_   # capture before doing anything else
+    Write-Error "Failed processing '$Path': $($Err.Exception.Message)"
+    throw $Err
 }
 ```
 
@@ -219,11 +218,11 @@ catch {
 ```powershell
 # Terminating - stops execution
 throw "Critical error occurred"
-$PSCmdlet.ThrowTerminatingError($errorRecord)   # preferred in advanced functions
+$PSCmdlet.ThrowTerminatingError($ErrorRecord)   # preferred in advanced functions
 
 # Non-terminating - continues execution
-Write-Error "Problem with item: $item"
-$PSCmdlet.WriteError($errorRecord)
+Write-Error "Problem with item: $Item"
+$PSCmdlet.WriteError($ErrorRecord)
 ```
 
 ### Feedback Methods
@@ -235,10 +234,10 @@ Write-Warning "File will be overwritten"
 Write-Verbose "Processing file: $Path"
 
 # Debug - troubleshooting info (requires -Debug)
-Write-Debug "Variable state: $($var | ConvertTo-Json)"
+Write-Debug "Variable state: $($Var | ConvertTo-Json)"
 
 # Progress - long-running operations
-Write-Progress -Activity "Processing" -Status "Item $i of $total" -PercentComplete (($i / $total) * 100)
+Write-Progress -Activity "Processing" -Status "Item $I of $Total" -PercentComplete (($I / $Total) * 100)
 ```
 
 ---
@@ -256,9 +255,9 @@ Write-Progress -Activity "Processing" -Status "Item $i of $total" -PercentComple
 # Create custom objects with type name
 [PSCustomObject]@{
     PSTypeName = 'MyModule.ServerInfo'   # enables format views + type-based filtering
-    Name       = $server.Name
-    Status     = $server.Status
-    IPAddress  = $server.IP
+    Name       = $Server.Name
+    Status     = $Server.Status
+    IPAddress  = $Server.IP
 }
 ```
 
@@ -301,7 +300,7 @@ function Remove-WidgetCache {
 - **Measure before optimizing**: `Measure-Command { ... }` on realistic data, on the target PowerShell version and hardware
 - **Never `+=` an array in a loop** — quadratic rebuild. Collect loop output directly, or use `[System.Collections.Generic.List[object]]` with `.Add()`:
   ```powershell
-  $results = foreach ($item in $items) { Convert-Item $item }
+  $Results = foreach ($Item in $Items) { Convert-Item $Item }
   ```
 - **Never `+=` strings in a loop** — use `-join`, here-strings, or `[System.Text.StringBuilder]`
 - `foreach (...)` statement is faster than piping to `ForEach-Object`; but for large files/streams, pipeline streaming (`Get-Content ... | ForEach-Object`) wins on memory over loading everything first

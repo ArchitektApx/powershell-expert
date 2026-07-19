@@ -20,14 +20,14 @@ Formatting and readability conventions from the community PowerShell Practice an
 - **No semicolons** as line terminators; none in multi-line hashtables
 - **Blank lines**: two around function/class definitions, one between class methods, one at end of file; single blank lines for logical sections inside functions
 - **Spacing**:
-  - One space around operators (`$a -eq $b`) and after commas/semicolons
+  - One space around operators (`$A -eq $B`) and after commas/semicolons
   - No space inside `[]` or plain `()`; one space inside `$( ... )` and `{ ... }` subexpressions
-  - No space before unary operators: `-1`, `$i++`
+  - No space before unary operators: `-1`, `$I++`
 
 ```powershell
 # Good
 if ($Path) {
-    $files = Get-ChildItem -Path $Path |
+    $Files = Get-ChildItem -Path $Path |
         Where-Object { $_.Length -gt 1MB } |
         Sort-Object -Property Length -Descending
 }
@@ -36,9 +36,9 @@ if ($Path) {
 ### Splatting Instead of Backticks
 ```powershell
 # Good
-$params = @{
-    Path        = $sourcePath
-    Destination = $destPath
+$Params = @{
+    Path        = $SourcePath
+    Destination = $DestPath
     Recurse     = $true
     Force       = $true
     ErrorAction = 'Stop'
@@ -46,8 +46,8 @@ $params = @{
 Copy-Item @params
 
 # Bad
-Copy-Item -Path $sourcePath `
-          -Destination $destPath `
+Copy-Item -Path $SourcePath `
+          -Destination $DestPath `
           -Recurse -Force
 ```
 
@@ -62,8 +62,7 @@ Align hashtable/splat assignments on `=` as above.
 | Functions, cmdlets | PascalCase | `Get-WidgetStatus` |
 | Parameters | PascalCase | `-ComputerName` |
 | Module names, classes | PascalCase | `WidgetTools` |
-| Script/global variables | PascalCase | `$ScriptRootConfig` |
-| Local variables | camelCase acceptable | `$itemCount` |
+| Variables (all scopes) | PascalCase | `$ItemCount` |
 | Language keywords | lowercase | `foreach`, `try`, `param` |
 | Comment-help keywords | UPPERCASE | `.SYNOPSIS` |
 | Two-letter acronyms | both capitals | `$PSBoundParameters`, `Get-PSDrive` |
@@ -106,13 +105,13 @@ Get-Process |
 - Block comments: `#` + single space per line, indented to code level; `<# ... #>` for long documentation with delimiters on their own lines
 
 ```powershell
-$retryDelay = 30          # Vendor API rate-limits at 2 req/min
-$maxAttempts = 5          # SLA allows up to 2.5 min total wait
+$RetryDelay = 30          # Vendor API rate-limits at 2 req/min
+$MaxAttempts = 5          # SLA allows up to 2.5 min total wait
 
 # DNS may lag behind the API's provisioning response, so we poll
 # instead of trusting the first success reply.
-while (-not (Resolve-DnsName $fqdn -ErrorAction SilentlyContinue)) {
-    Start-Sleep -Seconds $retryDelay
+while (-not (Resolve-DnsName $Fqdn -ErrorAction SilentlyContinue)) {
+    Start-Sleep -Seconds $RetryDelay
 }
 ```
 

@@ -25,8 +25,8 @@ BeforeAll {
 Describe 'Get-Widget' {
     Context 'with valid input' {
         It 'returns one object per name' {
-            $result = Get-Widget -Name 'a', 'b'
-            $result | Should -HaveCount 2
+            $Result = Get-Widget -Name 'a', 'b'
+            $Result | Should -HaveCount 2
         }
 
         It 'emits the custom type' {
@@ -45,14 +45,14 @@ Describe 'Get-Widget' {
 ## Assertions (Should)
 
 ```powershell
-$x | Should -Be 5                 # -eq (case-insensitive for strings)
-$x | Should -BeExactly 'Name'     # case-sensitive
-$x | Should -BeOfType [int]
-$x | Should -HaveCount 3
-$x | Should -Contain 'item'
-$x | Should -Match '^\d+$'        # regex
-$x | Should -BeNullOrEmpty
-$x | Should -Not -BeNullOrEmpty
+$X | Should -Be 5                 # -eq (case-insensitive for strings)
+$X | Should -BeExactly 'Name'     # case-sensitive
+$X | Should -BeOfType [int]
+$X | Should -HaveCount 3
+$X | Should -Contain 'item'
+$X | Should -Match '^\d+$'        # regex
+$X | Should -BeNullOrEmpty
+$X | Should -Not -BeNullOrEmpty
 { Remove-Widget -Name 'x' } | Should -Throw -ExceptionType ([InvalidOperationException])
 ```
 
@@ -111,9 +111,9 @@ It 'writes the export file' {
 ```powershell
 Describe 'Static analysis' {
     It 'has no PSScriptAnalyzer findings' {
-        $findings = Invoke-ScriptAnalyzer -Path $PSScriptRoot/.. -Recurse -Settings PSGallery
-        $findings | Out-String | Write-Host
-        $findings | Should -BeNullOrEmpty
+        $Findings = Invoke-ScriptAnalyzer -Path $PSScriptRoot/.. -Recurse -Settings PSGallery
+        $Findings | Out-String | Write-Host
+        $Findings | Should -BeNullOrEmpty
     }
 }
 ```

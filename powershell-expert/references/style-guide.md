@@ -131,6 +131,9 @@ function Get-ServerStatus {
     .DESCRIPTION
         Retrieves operational status including CPU, memory,
         and network information from remote servers.
+    
+    .PARAMETER Name
+        The name of the server(s) to get the status of.
 
     .EXAMPLE
         Get-ServerStatus -Name 'Server01'
@@ -144,12 +147,9 @@ function Get-ServerStatus {
     #>
     [CmdletBinding()]
     param(
-        # The server name(s) to query.
         [Parameter(Mandatory, ValueFromPipeline)]
         [string[]]$Name
     )
     # Implementation
 }
 ```
-
-**Parameter documentation**: prefer a comment inside the `param` block directly above each parameter (as shown) over `.PARAMETER` sections — it stays in sync when parameters change.

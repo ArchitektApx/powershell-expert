@@ -2,6 +2,14 @@
 
 All notable changes to the powershell-expert skill are documented in this file.
 
+## [1.2.2] - 2026-07-19
+
+### Added
+- Module Recommendations: Exchange (`ExchangeOnlineManagement`), Entra (`Microsoft.Graph.Entra`, `Microsoft.Graph.Entra.Beta`), Microsoft Graph (`Microsoft.Graph`, `Microsoft.Graph.Beta`) rows
+
+### Changed
+- Live Verification: microsoft-docs skill / microsoft-learn MCP tool (`microsoft_docs_search`, `microsoft_docs_fetch`, `microsoft_code_sample_search`) is now the preferred source for cmdlet syntax and docs, WebFetch/WebSearch demoted to fallback
+
 ## [1.2.1] - 2026-07-19
 
 ### Changed

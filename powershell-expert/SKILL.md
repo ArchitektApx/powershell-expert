@@ -191,13 +191,17 @@ When recommending modules, search the PowerShell Gallery. These are common start
 | **Console** | `PSReadLine`, `Terminal-Icons` |
 | **Secrets** | `Microsoft.PowerShell.SecretManagement` |
 | **Web** | `Pode` (web server), `PoshRSJob` (async) |
+| **Exchange** | `ExchangeOnlineManagement` |
+| **Entra** | `Microsoft.Graph.Entra`, `Microsoft.Graph.Entra.Beta` (replaces deprecated `AzureAD`/`MSOnline`) |
+| **Microsoft Graph** | `Microsoft.Graph` (stable, GA endpoints), `Microsoft.Graph.Beta` (beta endpoints) — both ship as many sub-modules (e.g. `Microsoft.Graph.Users`, `Microsoft.Graph.Mail`); install only the sub-modules needed |
 
 ## Live Verification
 
 You MUST verify information against live sources when accuracy is critical. Do not rely solely on training data for module availability or cmdlet syntax.
 
 **Tools to use:**
-- **WebFetch**: Retrieve and parse specific documentation URLs (PowerShell Gallery pages, Microsoft Docs)
+- **microsoft-docs skill / microsoft-learn MCP tool** (`microsoft_docs_search`, `microsoft_docs_fetch`, `microsoft_code_sample_search`): Preferred for anything on learn.microsoft.com — cmdlet syntax, module docs, Exchange/Entra/Graph reference, code samples
+- **WebFetch**: Retrieve and parse specific documentation URLs not covered above (PowerShell Gallery pages, etc.)
 - **WebSearch**: Find correct URLs when the exact path is unknown or to verify module existence
 
 ### When Verification is Required
@@ -223,7 +227,12 @@ When recommending or checking a module, **use the WebFetch tool** to verify it e
 
 ### Step 2: Verify Cmdlet Syntax (When Needed)
 
-Microsoft Docs URLs vary by module. **Use the WebSearch tool** to find the correct documentation page:
+**Prefer the microsoft-docs skill / microsoft-learn MCP tool** for cmdlet syntax:
+- Call `microsoft_docs_search` with query `{Cmdlet-Name} cmdlet` to find the doc
+- Call `microsoft_docs_fetch` on the returned URL to get full syntax, parameters, and examples
+- Call `microsoft_code_sample_search` when a working code sample is needed (e.g. Graph, Exchange Online, Entra scripts)
+
+**Fallback**: If the MCP tool is unavailable, use WebSearch to find the doc page:
 
 **WebSearch call:**
 - **Query**: `{Cmdlet-Name} cmdlet site:learn.microsoft.com/en-us/powershell`

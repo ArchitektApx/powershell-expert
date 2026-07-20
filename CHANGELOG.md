@@ -2,6 +2,11 @@
 
 All notable changes to the powershell-expert skill are documented in this file.
 
+## [1.3.0] - 2026-07-20
+
+### Added
+- Claude Code plugin marketplace support: Install via `/plugin marketplace add ArchitektApx/powershell-expert` then `/plugin install powershell-expert@powershell-expert`
+
 ## [1.2.2] - 2026-07-19
 
 ### Added

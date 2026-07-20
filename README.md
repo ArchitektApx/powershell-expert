@@ -1,7 +1,7 @@
 # PowerShell Expert Skill
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-1.2.2-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.3.0-green.svg)](CHANGELOG.md)
 [![Platform](https://img.shields.io/badge/PowerShell-5.1%20|%207+%20(Windows%20|%20Linux%20|%20macOS)-blue.svg)](https://github.com/PowerShell/PowerShell)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Skill-blueviolet.svg)](https://claude.ai/code)
 
@@ -18,6 +18,17 @@ A Claude Code skill for developing PowerShell scripts, tools, and modules follow
 - **Live Verification** - Validates module availability and cmdlet syntax against live documentation
 
 ## Installation
+
+### As a plugin (recommended)
+
+Add this repo as a marketplace, then install the plugin. Claude Code checks the marketplace for updates and you can pull them with `/plugin marketplace update`.
+
+```
+/plugin marketplace add ArchitektApx/powershell-expert
+/plugin install powershell-expert@powershell-expert
+```
+
+### Manual
 
 Copy the skill folder to your Claude Code skills directory:
 

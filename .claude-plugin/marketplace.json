@@ -1,0 +1,14 @@
+{
+  "name": "powershell-expert",
+  "description": "Develop PowerShell scripts, tools, and modules following Microsoft best practices.",
+  "owner": {
+    "name": "ArchitektApx"
+  },
+  "plugins": [
+    {
+      "name": "powershell-expert",
+      "source": "./powershell-expert",
+      "description": "Develop PowerShell scripts, tools, and modules following Microsoft best practices."
+    }
+  ]
+}

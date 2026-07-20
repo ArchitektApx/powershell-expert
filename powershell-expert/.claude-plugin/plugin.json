@@ -1,0 +1,11 @@
+{
+  "name": "powershell-expert",
+  "displayName": "PowerShell Expert",
+  "version": "1.3.0",
+  "description": "Develop PowerShell scripts, tools, and modules following Microsoft best practices. Covers script development, parameter design, pipeline handling, error management, Pester testing, and cross-platform compatibility.",
+  "author": {
+    "name": "ArchitektApx"
+  },
+  "homepage": "https://github.com/ArchitektApx/powershell-expert",
+  "keywords": ["powershell", "scripting", "pester", "cross-platform", "powershellget"]
+}

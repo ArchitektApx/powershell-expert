@@ -28,6 +28,16 @@ Add this repo as a marketplace, then install the plugin. Claude Code checks the 
 /plugin install powershell-expert@powershell-expert
 ```
 
+### Other agents (`npx skills`)
+
+The [skills CLI](https://github.com/vercel-labs/skills) installs the skill into every supported agent it detects (Claude Code, Cursor, Codex, Copilot, and others):
+
+```bash
+npx skills@latest add ArchitektApx/powershell-expert
+```
+
+This installs the skill only, without marketplace updates. Re-run the command to pull a newer version.
+
 ### Manual
 
 Copy the skill folder to your Claude Code skills directory:

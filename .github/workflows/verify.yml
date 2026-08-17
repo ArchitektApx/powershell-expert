@@ -1,0 +1,120 @@
+name: Verify
+
+# pull_request, never pull_request_target: this checks out and runs code from
+# the PR head, so it must not have write access or secrets.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # A broken manifest breaks install for every user, and there is no
+      # staged rollout to catch it.
+      - name: Validate JSON manifests
+        run: |
+          shopt -s nullglob
+          rc=0
+          for f in .claude-plugin/marketplace.json powershell-expert/.claude-plugin/plugin.json; do
+            [ -f "$f" ] || { echo "missing manifest: $f"; rc=1; continue; }
+            node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' "$f" || { echo "invalid JSON: $f"; rc=1; }
+          done
+          exit $rc
+
+      - name: Check manifest fields
+        run: |
+          node - <<'EOF'
+          const fs = require("fs");
+          let rc = 0;
+          const fail = (m) => { console.error(m); rc = 1; };
+
+          const mp = JSON.parse(fs.readFileSync(".claude-plugin/marketplace.json", "utf8"));
+          for (const k of ["name", "owner", "plugins"]) if (!(k in mp)) fail(`marketplace.json: missing ${k}`);
+          if (!Array.isArray(mp.plugins) || mp.plugins.length === 0) fail("marketplace.json: plugins must be a non-empty array");
+
+          const seen = new Set();
+          for (const p of mp.plugins || []) {
+            for (const k of ["name", "source"]) if (!(k in p)) fail(`marketplace.json plugin: missing ${k}`);
+            if (seen.has(p.name)) fail(`marketplace.json: duplicate plugin name ${p.name}`);
+            seen.add(p.name);
+            // Every plugin must be sourced from this repository. A source
+            // pointing at another repo or a URL delegates trust to a third party
+            // and every installer inherits it.
+            if (typeof p.source !== "string" || !p.source.startsWith("./")) fail(`marketplace.json plugin ${p.name}: source must be a local ./path, got ${JSON.stringify(p.source)}`);
+            const dir = p.source;
+            if (typeof dir === "string" && !fs.existsSync(dir)) fail(`marketplace.json plugin ${p.name}: source dir ${dir} does not exist`);
+            // Hooks and MCP servers run on the installer's machine. Neither is
+            // declared today; fail loudly if one appears so it gets reviewed.
+            for (const k of ["hooks", "mcpServers"]) if (k in p) fail(`marketplace.json plugin ${p.name}: declares ${k}; review before shipping`);
+          }
+
+          const pj = JSON.parse(fs.readFileSync("powershell-expert/.claude-plugin/plugin.json", "utf8"));
+          for (const k of ["name", "version", "description"]) if (!(k in pj)) fail(`plugin.json: missing ${k}`);
+          if (!/^\d+\.\d+\.\d+$/.test(pj.version || "")) fail(`plugin.json: version must be semver, got ${JSON.stringify(pj.version)}`);
+          for (const k of ["hooks", "mcpServers"]) if (k in pj) fail(`plugin.json: declares ${k}; review before shipping`);
+
+          process.exit(rc);
+          EOF
+
+      - name: Check every skill has frontmatter
+        run: |
+          rc=0
+          while IFS= read -r f; do
+            head -n 1 "$f" | grep -qx -- '---' || { echo "missing frontmatter: $f"; rc=1; }
+            grep -qE '^name:' "$f" || { echo "missing name: $f"; rc=1; }
+            grep -qE '^description:' "$f" || { echo "missing description: $f"; rc=1; }
+          done < <(find powershell-expert -name SKILL.md)
+          exit $rc
+
+      # `npx skills` installs flat by frontmatter name, so two skills with the
+      # same name silently clobber each other.
+      - name: Check skill names are unique
+        run: |
+          dupes=$(find powershell-expert -name SKILL.md -exec grep -m1 -E '^name:' {} \; | sed -E 's/^name:[[:space:]]*//' | sort | uniq -d)
+          if [ -n "$dupes" ]; then echo "duplicate skill names: $dupes"; exit 1; fi
+
+      # No hook, MCP config, or file with an executable bit ships today. Each of
+      # them executes on the installer's machine, so a new one must be a
+      # deliberate, reviewed change rather than something that crept in.
+      - name: Reject hooks and MCP configs
+        run: |
+          rc=0
+          while IFS= read -r f; do
+            echo "hook or MCP config in distributed content: $f"; rc=1
+          done < <(git ls-files powershell-expert | grep -E '(^|/)(hooks\.json|hooks/|\.mcp\.json|mcp\.json)' || true)
+          exit $rc
+
+      - name: Reject symlinks and executables
+        run: |
+          rc=0
+          while IFS= read -r entry; do
+            mode=${entry%% *}
+            case "$mode" in
+              120000) echo "symlink in distributed content: ${entry#* }"; rc=1 ;;
+              100755) echo "executable in distributed content: ${entry#* }"; rc=1 ;;
+            esac
+          done < <(git ls-files -s | awk '{print $1" "$4}')
+          exit $rc
+
+      # PSGallery is the only network endpoint the shipped script should
+      # touch. Any raw HTTP client call in a script the skill tells agents to
+      # run is a new trust decision for every user.
+      - name: Reject network calls in shipped scripts
+        run: |
+          if grep -rEn 'Invoke-WebRequest|Invoke-RestMethod|Invoke-Expression|\biex\b|\biwr\b|\birm\b|curl |wget |https?://' powershell-expert/scripts --include='*.ps1' --include='*.psm1' --include='*.psd1' | grep -vE '^\S+:\s*(#|\.EXAMPLE|\.\\Search-Gallery\.ps1)' ; then
+            echo "network or eval call in shipped script; review before shipping"; exit 1
+          fi

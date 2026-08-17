@@ -5,20 +5,36 @@ on:
     tags:
       - 'v*'
 
-permissions:
-  contents: write
+# Nothing at the workflow level. The release job requests contents: write for
+# itself; the repository default for GITHUB_TOKEN stays read-only.
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    # A hung packaging or upload step would otherwise sit on a runner for the
+    # default six hours.
+    timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      # Third-party and first-party actions alike are pinned to a commit SHA.
+      # A moved tag on an action that holds contents: write would be a direct
+      # path into this repository's releases.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The token is only needed by the release action below, which reads
+          # it from GITHUB_TOKEN. Nothing here pushes via git.
+          persist-credentials: false
 
       - name: Package skill
-        run: zip -r powershell-expert.skill powershell-expert -x "*.DS_Store"
+        run: zip -r powershell-expert.skill powershell-expert -x "*.DS_Store" -x "**/.claude-plugin/*"
 
       - name: Extract changelog section
-        id: changelog
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           awk -v ver="$VERSION" '
@@ -31,8 +47,20 @@ jobs:
             exit 1
           fi
 
+      - name: Check plugin.json version matches tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          MANIFEST=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("powershell-expert/.claude-plugin/plugin.json","utf8")).version)')
+          if [ "$MANIFEST" != "$VERSION" ]; then
+            echo "plugin.json version ($MANIFEST) does not match tag ($VERSION)" >&2
+            exit 1
+          fi
+
+      # The release body is passed by path, never through GITHUB_OUTPUT, so a
+      # changelog line that happened to match a heredoc delimiter cannot write
+      # arbitrary step outputs.
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           body_path: release_notes.md
           name: ${{ github.ref_name }}
